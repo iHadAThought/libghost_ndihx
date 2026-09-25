@@ -56,7 +56,19 @@ install_apt_packages() {
     yasm \
     libsdl2-dev \
     libavahi-client-dev \
-    avahi-daemon
+    avahi-daemon \
+    libsrt-openssl-dev || \
+  "${SUDO[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    curl \
+    ca-certificates \
+    nasm \
+    yasm \
+    libsdl2-dev \
+    libavahi-client-dev \
+    avahi-daemon \
+    libsrt-dev || true
 }
 
 ffmpeg_major_from_lib() {
@@ -112,6 +124,13 @@ install_ffmpeg7() {
   src="$(find "$TMP" -maxdepth 1 -type d -name 'FFmpeg-*' | head -1)"
   [[ -d "$src" ]] || die "FFmpeg source extract failed"
   pushd "$src" >/dev/null
+  local srt_flag=()
+  if pkg-config --exists srt 2>/dev/null || [[ -f /usr/include/srt/srt.h ]] || [[ -f /usr/local/include/srt/srt.h ]]; then
+    srt_flag=(--enable-libsrt)
+    log "Enabling libsrt for SRT demux"
+  else
+    log "libsrt headers not found — SRT demux disabled in this FFmpeg build"
+  fi
   ./configure \
     --prefix="$PREFIX" \
     --enable-shared \
@@ -123,7 +142,8 @@ install_ffmpeg7() {
     --disable-txtpages \
     --disable-programs \
     --disable-debug \
-    --enable-pic
+    --enable-pic \
+    "${srt_flag[@]}"
   make -j"$(nproc)"
   "${SUDO[@]}" make install
   popd >/dev/null

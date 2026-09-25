@@ -41,3 +41,7 @@ Steady-state CPU / RSS / threads (decoder perspective, aarch64 booth host):
 SRT and RTMP decoder modules live in the **GhostVidStream** shell repo (not this
 NDI|HX library). See that repo's `docs/srt-rtmp-decoder.md`.
 
+
+## Discovery
+
+LAN browse is **libghost_discover** (`ghost_discover.h`): backends `auto` / `bonjour` / `ndi_sdk`. See `docs/ndi-discovery.md`.

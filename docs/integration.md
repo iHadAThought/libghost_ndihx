@@ -33,7 +33,7 @@ Runtime deps (same on both):
 
 - **libndi** (NDI SDK v6)
 - **FFmpeg ≥ 7** shared libs (HX decode)
-- **Avahi** (mDNS discovery)
+- **Avahi** (Bonjour discover backend; also used by NDI SDK finder)
 
 ```bash
 ./install-deps.sh          # sudo; installs into /usr/local by default
@@ -59,7 +59,7 @@ Or:
 ```bash
 gcc -O2 -I/usr/local/include -o myapp myapp.c \
   -L/usr/local/lib -Wl,-rpath,/usr/local/lib \
-  -lghost_ndihx -lmedia_core -lndi -ldl -lpthread -lm
+  -lghost_ndihx -lghost_discover -lmedia_core -lndi -lavahi-client -lavahi-common -ldl -lpthread -lm
 ```
 
 Order matters with some linkers: put `libghost_ndihx.a` / `-lghost_ndihx` **before** `-lndi`.
@@ -136,9 +136,27 @@ int main(void) {
 | --- | --- |
 | `source` / `ip` | Prefer substrings |
 | `prefer_hx` / `auto_search` | Pick + retry behavior |
+| `discover` / `discover_backend` | `auto` (default) · `bonjour` · `ndi_sdk` |
 | `find_ms` / `rescan_ms` / `capture_wait_ms` | Timing |
 | `bandwidth` | `highest` (default) or `lowest` |
 | `recv_name` | Name shown to NDI peers (default **GhostVidStream**) |
+
+### Discovery (libghost_discover)
+
+LAN browse is a **first-class module** (`ghost_discover.h` / `libghost_discover.a`), not a
+hook inside the NDI receive path. `ghost_ndihx_discover` / `connect_auto` call it.
+
+| Backend | How | When |
+| --- | --- | --- |
+| `bonjour` | Native mDNS browse of `_ndi._tcp` (Avahi on Linux, dns_sd on macOS) | First under `auto`; alone when forced |
+| `ndi_sdk` | NDI SDK `NDIlib_find_*` (may reuse the session finder) | Fallback / merge under `auto`; alone when forced |
+| `auto` | Bonjour first, then SDK merge (dedupe by name/url); SDK alone if Bonjour empty | Default |
+
+Pick rules (source / ip / prefer_hx) are shared via `ghost_discover_pick` — same as viewer
+`--auto` / UI Auto / Rescan.
+
+GhostSpot / `ndi_hx_bridge` can link `libghost_discover` later for the same backends without
+duplicating Bonjour in Python.
 
 Camera **encode** settings are on the **sender**, not this library.
 

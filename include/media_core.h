@@ -8,7 +8,7 @@
  *   - rtmp          (RTMP / HTTP-FLV — implemented)
  *   - ndi_full      (FULL NDI — planned)
  *   - st2110        (SMPTE 2110 — planned)
- *   - rtsp          (RTSP/RTP — planned)
+ *   - rtsp          (RTSP/RTP — implemented)
  *
  * This header has **no** NDI / FFmpeg / GStreamer types. Modules implement
  * `media_module_t` and register with `media_register_module()`. Hosts pick a

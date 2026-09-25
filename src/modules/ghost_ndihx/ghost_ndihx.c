@@ -11,7 +11,11 @@
  *  - Explicit free of every superseded NDI video frame (no queue growth / leaks).
  *  - No UI deps — safe to link from Electron, Qt, Python ctypes, etc.
  *  - Portable aarch64 and x86_64 Linux (libndi path chosen by install-deps.sh).
+ *  - Discovery via libghost_discover (Bonjour + NDI SDK backends).
  */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include "ghost_ndihx.h"
 #include "media_core.h"
 
@@ -25,7 +29,7 @@
 #include <strings.h>
 #include <time.h>
 
-#define GHOST_NDIHX_VERSION_STR "0.4.0"
+#define GHOST_NDIHX_VERSION_STR "0.5.0"
 
 /* -------------------------------------------------------------------------- */
 /* Internal session                                                           */
@@ -85,14 +89,6 @@ static bool parse_bool(const char *v, bool *out) {
   return false;
 }
 
-static bool name_match(const char *hay, const char *needle) {
-  if (!needle || !*needle)
-    return true;
-  if (!hay)
-    return false;
-  return strcasestr(hay, needle) != NULL;
-}
-
 static NDIlib_recv_bandwidth_e to_ndi_bw(ghost_ndihx_bandwidth_t bw) {
   return bw == GHOST_NDIHX_BW_LOWEST ? NDIlib_recv_bandwidth_lowest
                                 : NDIlib_recv_bandwidth_highest;
@@ -130,22 +126,7 @@ const char *ghost_ndihx_bandwidth_name(ghost_ndihx_bandwidth_t bandwidth) {
 }
 
 bool ghost_ndihx_source_looks_hx(const char *name) {
-  if (!name || !*name)
-    return false;
-  char buf[512];
-  size_t n = strlen(name);
-  if (n >= sizeof(buf))
-    n = sizeof(buf) - 1;
-  for (size_t i = 0; i < n; i++)
-    buf[i] = (char)tolower((unsigned char)name[i]);
-  buf[n] = '\0';
-  if (strstr(buf, "hx-stream"))
-    return true;
-  if (strstr(buf, "ndi|hx"))
-    return true;
-  if (strstr(buf, "(hx)") || strstr(buf, "(hx2)") || strstr(buf, "(hx3)"))
-    return true;
-  return false;
+  return ghost_discover_source_looks_hx(name);
 }
 
 int ghost_ndihx_init(void) {
@@ -174,6 +155,7 @@ void ghost_ndihx_options_defaults(ghost_ndihx_options_t *opt) {
   opt->prefer_hx = true;
   opt->auto_search = true;
   opt->show_local = true;
+  opt->discover_backend = GHOST_DISCOVER_AUTO;
   opt->find_ms = 4000;
   opt->rescan_ms = 3000;
   opt->capture_wait_ms = 8;
@@ -194,6 +176,9 @@ static int apply_kv(ghost_ndihx_options_t *opt, const char *key, const char *val
     return parse_bool(val, &opt->auto_search) ? 0 : -1;
   } else if (!strcmp(key, "show_local")) {
     return parse_bool(val, &opt->show_local) ? 0 : -1;
+  } else if (!strcmp(key, "discover") || !strcmp(key, "discover_backend") ||
+             !strcmp(key, "discovery")) {
+    return ghost_discover_backend_parse(val, &opt->discover_backend) ? 0 : -1;
   } else if (!strcmp(key, "find_ms")) {
     opt->find_ms = atoi(val);
   } else if (!strcmp(key, "rescan_ms")) {
@@ -313,25 +298,39 @@ void ghost_ndihx_session_get_options(const ghost_ndihx_session_t *session, ghost
 /* Discovery / pick / connect                                                 */
 /* -------------------------------------------------------------------------- */
 
+static void map_discover_source(ghost_ndihx_source_t *dst, const ghost_discover_source_t *src) {
+  memset(dst, 0, sizeof(*dst));
+  snprintf(dst->name, sizeof(dst->name), "%s", src->name);
+  snprintf(dst->url, sizeof(dst->url), "%s", src->url);
+  dst->is_hx = src->is_hx || ghost_ndihx_source_looks_hx(dst->name);
+  dst->via_mdns = src->via_mdns;
+  snprintf(dst->backend, sizeof(dst->backend), "%s", src->backend[0] ? src->backend : "");
+}
+
 int ghost_ndihx_discover(ghost_ndihx_session_t *session, ghost_ndihx_source_t *out, int cap, int wait_ms) {
-  if (!session || !session->find || !out || cap <= 0)
+  if (!session || !out || cap <= 0)
     return -1;
   if (wait_ms < 0)
     wait_ms = 0;
-  NDIlib_find_wait_for_sources(session->find, (uint32_t)wait_ms);
-  uint32_t count = 0;
-  const NDIlib_source_t *sources = NDIlib_find_get_current_sources(session->find, &count);
-  if (!sources || count == 0)
-    return 0;
-  int n = (int)count < cap ? (int)count : cap;
-  for (int i = 0; i < n; i++) {
-    memset(&out[i], 0, sizeof(out[i]));
-    snprintf(out[i].name, sizeof(out[i].name), "%s",
-             sources[i].p_ndi_name ? sources[i].p_ndi_name : "");
-    snprintf(out[i].url, sizeof(out[i].url), "%s",
-             sources[i].p_url_address ? sources[i].p_url_address : "");
-    out[i].is_hx = ghost_ndihx_source_looks_hx(out[i].name);
-  }
+
+  ghost_discover_register_builtins();
+
+  ghost_discover_options_t dopt;
+  ghost_discover_options_defaults(&dopt);
+  dopt.backend = session->opt.discover_backend;
+  dopt.show_local = session->opt.show_local;
+  dopt.find_ms = wait_ms > 0 ? wait_ms : session->opt.find_ms;
+  /* Reuse the session's SDK finder when the ndi_sdk / auto path needs it. */
+  dopt.ndi_find = session->find;
+
+  ghost_discover_source_t raw[GHOST_DISCOVER_MAX_SOURCES];
+  int n = ghost_discover_browse(&dopt, raw, GHOST_DISCOVER_MAX_SOURCES);
+  if (n < 0)
+    return -1;
+  if (n > cap)
+    n = cap;
+  for (int i = 0; i < n; i++)
+    map_discover_source(&out[i], &raw[i]);
   return n;
 }
 
@@ -339,40 +338,17 @@ int ghost_ndihx_pick(const ghost_ndihx_source_t *sources, int count, const ghost
   if (!sources || count <= 0 || !opt)
     return -1;
 
-  if (opt->source_substr[0]) {
-    for (int i = 0; i < count; i++) {
-      if (name_match(sources[i].name, opt->source_substr) ||
-          name_match(sources[i].url, opt->source_substr))
-        return i;
-    }
-    return -1;
+  ghost_discover_source_t raw[GHOST_DISCOVER_MAX_SOURCES];
+  int n = count < GHOST_DISCOVER_MAX_SOURCES ? count : GHOST_DISCOVER_MAX_SOURCES;
+  for (int i = 0; i < n; i++) {
+    memset(&raw[i], 0, sizeof(raw[i]));
+    snprintf(raw[i].name, sizeof(raw[i].name), "%s", sources[i].name);
+    snprintf(raw[i].url, sizeof(raw[i].url), "%s", sources[i].url);
+    raw[i].is_hx = sources[i].is_hx;
+    raw[i].via_mdns = sources[i].via_mdns;
+    snprintf(raw[i].backend, sizeof(raw[i].backend), "%s", sources[i].backend);
   }
-
-  if (opt->ip_substr[0]) {
-    int hx = -1, any = -1;
-    for (int i = 0; i < count; i++) {
-      if (!name_match(sources[i].name, opt->ip_substr) &&
-          !name_match(sources[i].url, opt->ip_substr))
-        continue;
-      if (any < 0)
-        any = i;
-      if (sources[i].is_hx || ghost_ndihx_source_looks_hx(sources[i].name)) {
-        hx = i;
-        break;
-      }
-    }
-    if (opt->prefer_hx && hx >= 0)
-      return hx;
-    return any;
-  }
-
-  if (opt->prefer_hx) {
-    for (int i = 0; i < count; i++) {
-      if (sources[i].is_hx || ghost_ndihx_source_looks_hx(sources[i].name))
-        return i;
-    }
-  }
-  return 0;
+  return ghost_discover_pick(raw, n, opt->source_substr, opt->ip_substr, opt->prefer_hx);
 }
 
 void ghost_ndihx_disconnect(ghost_ndihx_session_t *session) {

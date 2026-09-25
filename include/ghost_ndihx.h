@@ -18,7 +18,11 @@
  * Threading: one session is not thread-safe. Use one session per thread, or
  * external locking around capture/connect/disconnect.
  *
- * Dependencies: libndi (NDI SDK v6), FFmpeg >= 7 for HX.
+ * Discovery is **not** hardcoded here: LAN browse goes through **libghost_discover**
+ * (`ghost_discover.h`) with selectable backends (`auto` / `bonjour` / `ndi_sdk`).
+ * See `src/modules/discover/README.md`.
+ *
+ * Dependencies: libndi (NDI SDK v6), FFmpeg >= 7 for HX, Avahi (Bonjour backend).
  * See README.md, docs/integration.md, docs/modular-compatibility.md.
  */
 #ifndef GHOST_NDIHX_H
@@ -27,6 +31,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "ghost_discover.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +46,7 @@ struct media_module;
 #define GHOST_NDIHX_DEFAULT_RECV_NAME "GhostVidStream"
 
 /** Max sources returned by a single discover call. */
-#define GHOST_NDIHX_MAX_SOURCES 64
+#define GHOST_NDIHX_MAX_SOURCES GHOST_DISCOVER_MAX_SOURCES
 
 /** Opaque session: finder + optional receiver + last video frame ownership. */
 typedef struct ghost_ndihx_session ghost_ndihx_session_t;
@@ -58,7 +64,9 @@ typedef enum ghost_ndihx_bandwidth {
 typedef struct ghost_ndihx_source {
   char name[256];
   char url[256];
-  bool is_hx; /**< Heuristic: name looks like NDI|HX / HX-Stream / (HX). */
+  bool is_hx;     /**< Heuristic: name looks like NDI|HX / HX-Stream / (HX). */
+  bool via_mdns;  /**< True when produced by the Bonjour/Avahi discover backend. */
+  char backend[32]; /**< Discover backend id ("bonjour"|"ndi_sdk"). */
 } ghost_ndihx_source_t;
 
 /**
@@ -77,6 +85,12 @@ typedef struct ghost_ndihx_options {
   bool prefer_hx;   /**< Prefer HX-looking sources when picking (default true). */
   bool auto_search; /**< connect_auto keeps rescanning until a match. */
   bool show_local;  /**< Include local machine sources (default true). */
+
+  /**
+   * Discovery backend (`ghost_discover`): auto (default) | bonjour | ndi_sdk.
+   * AUTO = Bonjour `_ndi._tcp` first, NDI SDK finder merge/fallback.
+   */
+  ghost_discover_backend_id_t discover_backend;
 
   int find_ms;   /**< Wait for discovery (ms), min 500. */
   int rescan_ms; /**< Pause between auto-search attempts (ms). */
@@ -118,7 +132,8 @@ void ghost_ndihx_options_defaults(ghost_ndihx_options_t *opt);
 /**
  * Load key=value settings from a file into @p opt (does not clear unspecified keys).
  * Supported keys: source, ip, prefer_hx, auto|auto_search, find_ms, rescan_ms,
- * capture_wait_ms, bandwidth (highest|lowest), recv_name.
+ * capture_wait_ms, bandwidth (highest|lowest), recv_name,
+ * discover|discover_backend (auto|bonjour|ndi_sdk).
  * Returns 0 on success; on failure writes a message into @p err (may be NULL).
  */
 int ghost_ndihx_options_load_file(ghost_ndihx_options_t *opt, const char *path, char *err,
@@ -135,6 +150,7 @@ void ghost_ndihx_session_get_options(const ghost_ndihx_session_t *session, ghost
 
 /**
  * Wait up to @p wait_ms and copy up to @p cap sources into @p out.
+ * Uses libghost_discover with the session discover_backend (reuses SDK finder).
  * Returns the number of sources written (0..cap), or -1 on error.
  */
 int ghost_ndihx_discover(ghost_ndihx_session_t *session, ghost_ndihx_source_t *out, int cap, int wait_ms);
@@ -142,6 +158,7 @@ int ghost_ndihx_discover(ghost_ndihx_session_t *session, ghost_ndihx_source_t *o
 /**
  * Pick best index into @p sources using @p opt filters. Returns -1 if none match.
  * Does not require a live session (pure helper — easy to unit-test / reuse).
+ * Delegates to ghost_discover_pick.
  */
 int ghost_ndihx_pick(const ghost_ndihx_source_t *sources, int count, const ghost_ndihx_options_t *opt);
 
