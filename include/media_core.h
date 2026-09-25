@@ -3,7 +3,9 @@
  * @brief Protocol-agnostic media receive core for GhostVidStream modules.
  *
  * GhostVidStream is the multi-protocol viewer / receive shell. Modules plug in:
- *   - ghost_ndihx   (first decoder — NDI|HX — implemented)
+ *   - ghost_ndihx   (NDI|HX — implemented)
+ *   - srt           (SRT — implemented)
+ *   - rtmp          (RTMP / HTTP-FLV — implemented)
  *   - ndi_full      (FULL NDI — planned)
  *   - st2110        (SMPTE 2110 — planned)
  *   - rtsp          (RTSP/RTP — planned)
@@ -39,7 +41,9 @@ typedef enum media_protocol_id {
   MEDIA_PROTO_NDI_HX = 1,
   MEDIA_PROTO_NDI_FULL = 2,
   MEDIA_PROTO_ST2110 = 3,
-  MEDIA_PROTO_RTSP = 4
+  MEDIA_PROTO_RTSP = 4,
+  MEDIA_PROTO_SRT = 5,
+  MEDIA_PROTO_RTMP = 6
 } media_protocol_id_t;
 
 /**

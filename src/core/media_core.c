@@ -35,6 +35,10 @@ const char *media_protocol_name(media_protocol_id_t id) {
     return "st2110";
   case MEDIA_PROTO_RTSP:
     return "rtsp";
+  case MEDIA_PROTO_SRT:
+    return "srt";
+  case MEDIA_PROTO_RTMP:
+    return "rtmp";
   default:
     return "unknown";
   }

@@ -12,11 +12,14 @@ Sibling architecture plan (store): `docs/modular-protocol-plan.md`.
 include/media_core.h          # protocol-agnostic types + module vtable
 include/ghost_ndihx.h         # NDI|HX native API (first module)
 src/core/media_core.c         # registry + shared pick helpers (no protocol SDKs)
-src/modules/ghost_ndihx/      # first module (implemented)
+src/modules/ghost_ndihx/      # NDI|HX (implemented)
+src/modules/srt/              # SRT (implemented — FFmpeg + libsrt)
+src/modules/rtmp/             # RTMP / HTTP-FLV (implemented — FFmpeg)
+src/modules/ffmpeg_rx/        # Shared URL demux/decode → BGRX
 src/modules/ndi_full/         # placeholder — FULL NDI
 src/modules/st2110/           # placeholder — SMPTE 2110
 src/modules/rtsp/             # placeholder — RTSP/RTP
-src/viewer_main.c             # GhostVidStream SDL shell (uses ghost_ndihx_* today)
+src/viewer_main.c             # GhostVidStream SDL shell (--protocol …)
 ```
 
 ## Contracts (do not paint into a corner)
@@ -66,8 +69,12 @@ Link (NDI|HX module today): `-lghost_ndihx -lmedia_core -lndi -ldl -lpthread -lm
 | Id | Protocol | Status |
 | --- | --- | --- |
 | `ghost_ndihx` | NDI\|HX | Implemented (libndi + FFmpeg ≥ 7) |
+| `srt` | SRT | Implemented (FFmpeg + libsrt) |
+| `rtmp` | RTMP / HTTP-FLV | Implemented (FFmpeg) |
 | `ndi_full` | FULL NDI | Planned — same SDK family; different bandwidth/color defaults |
 | `st2110` | SMPTE 2110 | Planned — different deps; still fills `media_frame_t` |
 | `rtsp` | RTSP/RTP | Planned — URL-centric discover/connect |
+
+See also [srt-rtmp-decoder.md](srt-rtmp-decoder.md) for AIDA endpoint + test results.
 
 Placeholders live under `src/modules/<id>/README.md` until implemented.

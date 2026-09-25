@@ -35,3 +35,9 @@ Steady-state CPU / RSS / threads (decoder perspective, aarch64 booth host):
   - GitHub: https://github.com/iHadAThought/GhostVidStream
   - Forgejo: https://git.ghostnetwork.app/Brendan/GhostVidStream
 - BookStack: https://bookstack.ghostnetwork.app/books/libghost-ndihx
+
+## Other protocols
+
+SRT and RTMP decoder modules live in the **GhostVidStream** shell repo (not this
+NDI|HX library). See that repo's `docs/srt-rtmp-decoder.md`.
+
