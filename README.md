@@ -29,6 +29,11 @@ See [docs/integration.md](docs/integration.md).
 Steady-state CPU / RSS / threads (decoder perspective, aarch64 booth host):
 [docs/resource-usage.md](docs/resource-usage.md).
 
+## License
+
+Released under the [MIT License](LICENSE) — free to use, modify, and redistribute.
+Copyright © 2026 Brendan Mahoney / iHadAThought.
+
 ## Related
 
 - GhostVidStream shell (viewer + future modules):
