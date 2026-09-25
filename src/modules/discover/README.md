@@ -29,3 +29,11 @@
  *
  * Same as GhostVidStream auto-connect: `source` → `ip` (+ prefer HX) → first HX → index 0.
  */
+
+
+## RTSP / SRT
+
+**Not** implemented here. Those protocols are URL-only in GhostVidStream today
+(no ONVIF WS-Discovery / `_rtsp._tcp` / `_srt._tcp` advertisers on the show
+camera). See [`docs/rtsp-srt-discovery.md`](../../../docs/rtsp-srt-discovery.md).
+Do not add LAN port scanners as a substitute.

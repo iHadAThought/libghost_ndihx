@@ -78,3 +78,12 @@ Link (NDI|HX module today): `-lghost_ndihx -lmedia_core -lndi -ldl -lpthread -lm
 See also [srt-rtmp-decoder.md](srt-rtmp-decoder.md) for AIDA endpoint + test results.
 
 Placeholders live under `src/modules/<id>/README.md` until implemented.
+
+---
+
+## Discovery reality (NDI vs RTSP/SRT)
+
+| Protocol | LAN auto-discovery in this product |
+| --- | --- |
+| NDI\|HX | Yes — `libghost_discover` (`bonjour` / `ndi_sdk` / `auto`) |
+| RTSP / SRT | **No** — URL-only (`docs/rtsp-srt-discovery.md`). ONVIF/SAP/mDNS not advertised by AIDA; do not invent scanners. |
