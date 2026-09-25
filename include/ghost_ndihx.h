@@ -1,12 +1,13 @@
 /**
  * @file ghost_ndihx.h
- * @brief GhostVidStream NDI|HX module — native API (also the first media_core plugin).
+ * @brief libghost_ndihx — NDI|HX receive API (first GhostVidStream decoder plugin).
  *
- * UI-free receive library for Linux aarch64 + x86_64. Host apps may either:
+ * UI-free NDI|HX library for Linux aarch64 + x86_64. GhostVidStream is the
+ * multi-protocol shell; this header is the **NDI|HX** module only. Hosts may:
  *   A) Call `ghost_ndihx_*` directly (this header), or
  *   B) Use protocol-agnostic `media_core.h` after `ghost_ndihx_register_media_module()`.
  *
- * Product: GhostVidStream. Typical native embed flow:
+ * Typical native embed flow:
  *   1. ghost_ndihx_init()
  *   2. ghost_ndihx_options_defaults(&opt);  optionally load a config / set filters
  *   3. session = ghost_ndihx_session_create(&opt)

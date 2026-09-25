@@ -1,21 +1,22 @@
 # Modular protocol compatibility
 
-This repo is structured so a future **main app** can plug in multiple receive
-protocols without rewriting the NDI|HX path.
+**GhostVidStream** is the multi-protocol receive / viewer **shell**. Protocol
+decoders register as `media_module_t` plugins. **NDI|HX** (`libghost_ndihx`) is
+the first implemented module — not the identity of the product.
 
-Sibling Project plan (store): `docs/modular-protocol-plan.md` (drafted separately).
+Sibling architecture plan (store): `docs/modular-protocol-plan.md`.
 
 ## Layout
 
 ```
 include/media_core.h          # protocol-agnostic types + module vtable
-include/ghost_ndihx.h              # NDI|HX native API (first module)
-src/core/media_core.c         # registry + shared pick helpers (no NDI deps)
-src/modules/ghost_ndihx/           # first module (implemented)
-src/modules/ndi_full/         # placeholder
-src/modules/st2110/           # placeholder
-src/modules/rtsp/             # placeholder
-src/viewer_main.c             # SDL reference (uses native ghost_ndihx_* today)
+include/ghost_ndihx.h         # NDI|HX native API (first module)
+src/core/media_core.c         # registry + shared pick helpers (no protocol SDKs)
+src/modules/ghost_ndihx/      # first module (implemented)
+src/modules/ndi_full/         # placeholder — FULL NDI
+src/modules/st2110/           # placeholder — SMPTE 2110
+src/modules/rtsp/             # placeholder — RTSP/RTP
+src/viewer_main.c             # GhostVidStream SDL shell (uses ghost_ndihx_* today)
 ```
 
 ## Contracts (do not paint into a corner)
@@ -58,15 +59,15 @@ while (m->capture_newest(s, &fr)) { /* … */ }
 m->close(s);
 ```
 
-Link: `-lndi_hx -lmedia_core -lndi -ldl -lpthread -lm`
+Link (NDI|HX module today): `-lghost_ndihx -lmedia_core -lndi -ldl -lpthread -lm`
 
-## Future modules
+## Modules
 
-| Id | Protocol | Notes |
+| Id | Protocol | Status |
 | --- | --- | --- |
 | `ghost_ndihx` | NDI\|HX | Implemented (libndi + FFmpeg ≥ 7) |
-| `ndi_full` | FULL NDI | Same SDK family; different bandwidth/color defaults |
-| `st2110` | SMPTE 2110 | Likely different deps; still fills `media_frame_t` |
-| `rtsp` | RTSP/RTP | URL-centric discover/connect |
+| `ndi_full` | FULL NDI | Planned — same SDK family; different bandwidth/color defaults |
+| `st2110` | SMPTE 2110 | Planned — different deps; still fills `media_frame_t` |
+| `rtsp` | RTSP/RTP | Planned — URL-centric discover/connect |
 
 Placeholders live under `src/modules/<id>/README.md` until implemented.

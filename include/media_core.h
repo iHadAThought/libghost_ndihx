@@ -1,20 +1,20 @@
 /**
  * @file media_core.h
- * @brief Protocol-agnostic media receive core for pluggable modules.
+ * @brief Protocol-agnostic media receive core for GhostVidStream modules.
  *
- * A future main app can load modules such as:
- *   - ghost_ndihx   (first module — GhostVidStream NDI|HX — implemented)
- *   - ndi_full (FULL NDI)
- *   - st2110   (SMPTE 2110)
- *   - rtsp     (RTSP/RTP)
+ * GhostVidStream is the multi-protocol viewer / receive shell. Modules plug in:
+ *   - ghost_ndihx   (first decoder — NDI|HX — implemented)
+ *   - ndi_full      (FULL NDI — planned)
+ *   - st2110        (SMPTE 2110 — planned)
+ *   - rtsp          (RTSP/RTP — planned)
  *
  * This header has **no** NDI / FFmpeg / GStreamer types. Modules implement
  * `media_module_t` and register with `media_register_module()`. Hosts pick a
  * module by id, open a session, discover/connect, then pull BGRX (or module-
  * documented) frames via `capture_newest`.
  *
- * GhostVidStream keeps its native NDI|HX API in `ghost_ndihx.h` for direct embeds; that API
- * is the concrete first module and registers itself when linked.
+ * The NDI|HX decoder also exposes a native API in `ghost_ndihx.h` for embeds that
+ * only need that protocol; it registers itself with media_core when linked.
  *
  * See docs/modular-compatibility.md and (Project store) modular-protocol-plan.
  */

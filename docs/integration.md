@@ -1,8 +1,12 @@
 # Embedding libghost_ndihx in another app
 
-**GhostVidStream** is the product (SDL viewer). Embeds link **`libghost_ndihx`**
-— a small **C** library with **no SDL / GUI dependency**. Use it from Electron
-(N-API), Qt, Python ctypes/cffi, Go cgo, Rust FFI, or plain C/C++.
+**libghost_ndihx** is the **NDI|HX** decoder plugin used by **GhostVidStream**
+(the multi-protocol receive / viewer shell). Embeds that only need NDI|HX link
+this library — a small **C** API with **no SDL / GUI dependency**. Use it from
+Electron (N-API), Qt, Python ctypes/cffi, Go cgo, Rust FFI, or plain C/C++.
+
+GhostVidStream itself will grow FULL NDI / 2110 / RTSP modules behind
+`media_core`; those are separate from this NDI|HX-specific library.
 
 Companion headers:
 

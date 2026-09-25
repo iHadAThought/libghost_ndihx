@@ -1,9 +1,10 @@
 # libghost_ndihx
 
-NDI|HX-focused receive library for Linux **aarch64** and **x86_64**.
+**NDI|HX-only** receive library for Linux **aarch64** and **x86_64**.
 
-Part of the **GhostVidStream** product family. This repo is the **decoder-only**
-package (no SDL viewer).
+This is the first decoder plugin for the **GhostVidStream** multi-protocol
+receive / viewer shell. This repo is **decoder-only** (no SDL viewer). Other
+protocols (FULL NDI, SMPTE 2110, RTSP) will ship as separate modules — not here.
 
 | Piece | Name |
 | --- | --- |
@@ -23,6 +24,14 @@ sudo make install-lib
 
 See [docs/integration.md](docs/integration.md).
 
+## Resource usage
+
+Steady-state CPU / RSS / threads (decoder perspective, aarch64 booth host):
+[docs/resource-usage.md](docs/resource-usage.md).
+
 ## Related
 
-- Full app (GhostVidStream viewer): GitHub `iHadAThought/GhostVidStream`, Forgejo `Brendan/GhostVidStream`
+- GhostVidStream shell (viewer + future modules):
+  - GitHub: https://github.com/iHadAThought/GhostVidStream
+  - Forgejo: https://git.ghostnetwork.app/Brendan/GhostVidStream
+- BookStack: https://bookstack.ghostnetwork.app/books/libghost-ndihx
