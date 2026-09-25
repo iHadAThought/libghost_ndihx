@@ -1,0 +1,24 @@
+# Build outputs
+/ndi-hx-viewer
+/libndi_hx.a
+/libmedia_core.a
+*.o
+*.a
+*.so
+*.dylib
+
+# Editor / OS
+.DS_Store
+*~
+*.swp
+.idea/
+.vscode/
+
+# Local caches / temp
+.cache/
+tmp/
+*.partial
+
+# Stress harness binaries
+/stress_ndi_hx
+/stress_ndi_hx-asan
